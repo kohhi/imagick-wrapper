@@ -1,114 +1,37 @@
 #!/bin/bash
-
-###### GET OPTIONS ######
-
-CMDNAME=`basename $0`
-while getopts f:di:o:aeh OPT; do
+while getopts d:i:o:rh OPT; do
     case $OPT in
-        "f" ) FLG_DIRECTORY="TRUE" ; VAL_DIRECTORY="$OPTARG" ;;
-        "d" ) FLG_DELETE="TRUE" ;;
+        "d" ) FLG_DIRECTORY="TRUE" ; VAL_DIRECTORY="$OPTARG" ;;
         "i" ) FLG_INTYPE="TRUE" ; VAL_INTYPE="$OPTARG" ;;
         "o" ) FLG_OUTTYPE="TRUE" ; VAL_OUTTYPE="$OPTARG" ;;
-        "a" ) FLG_INSTALL="TRUE" ;;
-        "e" ) FLG_EGG="TRUE" ;;
+        "r" ) FLG_DELETE="TRUE" ;;
         "h" ) FLG_HELP="TRUE" ;;
-            * ) echo "利用可能なオプション: $CMDNAME [-f DIRECTORY] [-d] [-i TYPE] [-o TYPE] [-h]" 1>&2
+            * ) echo "OPTIONS: [-d DIRECTORY] [-i TYPE] [-o TYPE] [-r] [-h]" 1>&2
                 exit 1 ;;
     esac
 done
-
-###### FUNCTIONS ######
-
-# Convert function. [$1:filename $2:output_type $3:flag_delete(TRUE or null)]
-function convert_image () {
-    FILE_NAME="$1"
-    FILE_TYPE="$2"
-    FILE_DELETE="$3"
-    CONVERT_FILE=`echo $FILE_NAME | sed -e "s/\.[a-zA-Z0-9]*$/\.$FILE_TYPE/"`
-    echo "Converting $FILE_NAME to $CONVERT_FILE ..."
-    convert $FILE_NAME $CONVERT_FILE
-    # Delete file if -d flag has specified.
-    if [ "$FILE_DELETE" = "TRUE" ]; then
-        echo "Deleting $FILE_NAME ..."
-        rm $FILE_NAME
-    fi
-}
-
-# Install ImageMagick on computer.
-function install_imagick () {
-    #TODO: write dependencie application's installer for Mac(Homebrew) and Ubuntu(apt).
-    echo "Sorry, cannot use this process because Cuckoo hasn't lay an egg on this program... ;("
-}
-
-# View Help message.
-function view_help () {
-    echo "ImageMagick Wrapper Application"
-    echo "Version 0.1"
-    echo ""
-    echo ""
-    echo "Options: -f: ディレクトリを指定します"
-    echo "             指定されていない場合カレントディレクトリが利用されます"
-    echo ""
-    echo "         -d: 処理完了後元ファイルを削除する場合指定します"
-    echo ""
-    echo "         -i: 変換する対象の拡張子を指定します[png/jpg/bmp等ImageMagickで扱える形式、必須]"
-    echo ""
-    echo "         -o: 出力の形式を指定します[png/jpg/bmp等ImageMagickで扱える形式]"
-    echo "             指定されていない場合自動でpngが利用されます"
-    echo ""
-    echo "         -a: ImageMagick等必須ソフトウェアがインストールされていない場合"
-    echo "             自動でコンピュータに合わせてインストールを行います"
-    echo "             この操作を行う場合、途中でパスワードを求められる場合があります"
-    echo ""
-    echo "         -h: これを表示します"
-    echo ""
-}
-
-# Egg
-function view_egg () {
-    echo " ____________________________"
-    echo "/ エッグを探そうなんて、君は \\"
-    echo "\\ 実にエッグいヤツだね       /"
-    echo " ----------------------------"
-    echo "        \\   ^__^"
-    echo "         \\  (oo)\\_______"
-    echo "            (__)\\       )\\/\\"
-    echo "                ||----w |"
-    echo "                ||     ||"
-    echo ""
-}
-
-###### MAIN ######
-
-# Print Help Message if -h flag has specified.
 if [ "$FLG_HELP" = "TRUE" ]; then
-    view_help
+    echo "Usage Example: convert -i png -o jpg -d /foo/dir -r"
+    echo "i: Input / o: Output / d: Directory / r: Delete source file"
     exit 1
 fi
-
-# Show Egg
-if [ "$FLG_EGG" = "TRUE" ]; then
-    view_egg
+if [ "$(which convert)" = "" ]; then
+    echo "ImageMagick をインストールしてください"
     exit 1
 fi
-
-# Set current directory to "VAL_DIRECTORY" if -f flag hasn't specified.
+if [ "$FLG_INTYPE" != "TRUE" ] || [ "$FLG_OUTTYPE" != "TRUE" ]; then
+    echo '対象のファイル形式を指定してください: "-i/-o TYPE"'
+    exit 1
+fi
 if [ "$FLG_DIRECTORY" != "TRUE" ]; then
     VAL_DIRECTORY="."
 fi
-
-# Print Error Message if -i flag hasn't specified.
-if [ "$FLG_INTYPE" != "TRUE" ]; then
-    echo '置換対象のファイル形式を教えてください: "-i TYPE"'
-    exit 1
-fi
-
-# Set "png" to "VAL_OUTTYPE" param if -o flag hasn't specified.
-if [ "$FLG_OUTTYPE" != "TRUE" ]; then
-    VAL_OUTTYPE="png"
-fi
-
-# Loop
-for TARGET in `\find $VAL_DIRECTORY -name "*.$VAL_INTYPE"`; do
-    convert_image $TARGET $VAL_OUTTYPE $FLG_DELETE
+for TARGET in $(\find $VAL_DIRECTORY -name "*.$VAL_INTYPE"); do
+    CONVERT=$(echo $TARGET | sed -e "s/\.[a-zA-Z0-9]*$/\.$VAL_OUTTYPE/")
+    echo "Converting $TARGET to $CONVERT …"
+    convert $TARGET $CONVERT
+    if [ "$FLG_DELETE" = "TRUE" ]; then
+        echo "Deleting $TARGET …"
+        rm $TARGET
+    fi
 done
